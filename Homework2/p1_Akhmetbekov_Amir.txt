@@ -1,0 +1,114 @@
+1. import ast
+2. import io
+3. import tokenize
+4. 
+5. 
+6. def line_number(input_file: str, output_file: str) -> None:
+7.     """Read a text file and write its lines with line numbers to another file."""
+8.     try:
+9.         with open(input_file, "r", encoding="utf-8") as infile:
+10.             lines = infile.readlines()
+11. 
+12.         with open(output_file, "w", encoding="utf-8") as outfile:
+13.             for number, line in enumerate(lines, start=1):
+14.                 outfile.write(f"{number}. {line}")
+15. 
+16.     except Exception as error:
+17.         print("Error processing the file:", error)
+18.         raise
+19. 
+20. 
+21. def parse_functions(filename: str) -> tuple:
+22.     """Parse a Python file and return information about its functions."""
+23.     try:
+24.         with open(filename, "r", encoding="utf-8") as file:
+25.             source = file.read()
+26. 
+27.         lines = source.splitlines(keepends=True)
+28. 
+29.         # Parse the Python source code
+30.         tree = ast.parse(source)
+31. 
+32.         # Find locations of comments
+33.         comment_columns = {}
+34. 
+35.         tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+36. 
+37.         for token in tokens:
+38.             if token.type == tokenize.COMMENT:
+39.                 line_number, column = token.start
+40.                 comment_columns[line_number] = column
+41. 
+42.         functions = []
+43. 
+44.         # Look at top-level functions in the file
+45.         for node in tree.body:
+46.             if isinstance(node, ast.FunctionDef):
+47.                 function_name = node.name
+48.                 function_line = node.lineno
+49. 
+50.                 # Get the formal argument list from the function definition
+51.                 definition_line = lines[function_line - 1]
+52.                 left_parenthesis = definition_line.find("(")
+53.                 right_parenthesis = definition_line.rfind(")")
+54.                 arguments = definition_line[
+55.                     left_parenthesis + 1:right_parenthesis
+56.                 ]
+57. 
+58.                 code_lines = []
+59. 
+60.                 # Get the function signature and body
+61.                 for current_number in range(node.lineno, node.end_lineno + 1):
+62.                     current_line = lines[current_number - 1]
+63. 
+64.                     # Remove comments
+65.                     if current_number in comment_columns:
+66.                         column = comment_columns[current_number]
+67.                         current_line = current_line[:column]
+68. 
+69.                     # Remove the newline and trailing spaces
+70.                     current_line = current_line.rstrip()
+71. 
+72.                     # Do not include empty lines
+73.                     if current_line.strip() != "":
+74.                         code_lines.append(current_line)
+75. 
+76.                 function_code = "\n".join(code_lines) + "\n"
+77. 
+78.                 functions.append(
+79.                     (
+80.                         function_line,
+81.                         function_name,
+82.                         arguments,
+83.                         function_code
+84.                     )
+85.                 )
+86. 
+87.         # Sort alphabetically by function name
+88.         functions.sort(key=lambda function: function[1])
+89. 
+90.         return tuple(functions)
+91. 
+92.     except Exception as error:
+93.         print("Error processing the file:", error)
+94.         raise
+95. 
+96. 
+97. def main() -> None:
+98.     """Test line_number and parse_functions on this Python source file."""
+99.     source_file = __file__
+100.     output_file = "p1_Akhmetbekov_Amir.txt"
+101. 
+102.     print("Amir Akhmetbekov")
+103. 
+104.     print("\nTesting line_number:")
+105.     line_number(source_file, output_file)
+106.     print("Created:", output_file)
+107. 
+108.     print("\nTesting parse_functions:")
+109.     result = parse_functions(source_file)
+110.     print(result)
+111. 
+112. 
+113. if __name__ == "__main__":
+114.     main()
